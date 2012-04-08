@@ -12,17 +12,19 @@ operate on the raw control, diff and extra blocks. Operation is asynchronous.
 
 ## Usage
 
-  var fs = require('fs');
-  var bsdiff4 = require('bsdiff4');
+```javascript
+var fs = require('fs');
+var bsdiff4 = require('bsdiff4');
 
-  var origData = fs.readFileSync('oldfile');
-  var newData  = fs.readFileSync('newfile');
+var origData = fs.readFileSync('oldfile');
+var newData  = fs.readFileSync('newfile');
 
-  bsdiff4.diff(origData, newData, function(err, control, diff, extra) {
-    bsdiff4.patch(origData, newData.length, control, diff, extra, function(err, out) {
-      ...
-    });
+bsdiff4.diff(origData, newData, function(err, control, diff, extra) {
+  bsdiff4.patch(origData, newData.length, control, diff, extra, function(err, out) {
+    ...
   });
+});
+```
 
 ## Functions
 
