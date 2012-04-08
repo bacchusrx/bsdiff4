@@ -49,7 +49,7 @@ bsdiff4.diff(origData, newData, function(err, control, diff, extra) {
 
 ## Other versions
 
-* [node-bsdiff]:https://github.com/mikepb/node-bsdiff
-* [BSDiff]:http://www.daemonology.net/bsdiff
-* [bsdiff4]:https://github.com/ilanschnell/bsdiff4
-* [cx_bsdiff]:http://cx-bsdiff.sf.net
+* [node-bsdiff](https://github.com/mikepb/node-bsdiff)
+* [BSDiff](http://www.daemonology.net/bsdiff)
+* [bsdiff4](https://github.com/ilanschnell/bsdiff4)
+* [cx_bsdiff](http://cx-bsdiff.sf.net)
