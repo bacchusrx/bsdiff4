@@ -29,23 +29,23 @@ bsdiff4.diff(origData, newData, function(err, control, diff, extra) {
 ## Functions
 
 * `bsdiff4.diff(origData, newData, callback)` - generate a BSDiff patch
-  * `origData` - a `Buffer` containing the original (source) data
-  * `newData` - a `Buffer` containing the new (target) data
-  * `callback` - a function to call once a patch has been generated
-    * `err` - null on success,` an `Error` object on error
-    * `control` - an `Array` containing the control block
-    * `diffBlock` - a `Buffer` containing the diff block
-    * `extraBlock` - a `Buffer` containing the extra block
+    * `origData` - a `Buffer` containing the original (source) data
+    * `newData` - a `Buffer` containing the new (target) data
+    * `callback` - a function to call once a patch has been generated
+        * `err` - null on success,` an `Error` object on error
+        * `control` - an `Array` containing the control block
+        * `diffBlock` - a `Buffer` containing the diff block
+        * `extraBlock` - a `Buffer` containing the extra block
 
 * `bsdiff4.patch(origData, newDataLength, control, diffBlock, extraBlock, callback)` - apply a BSDiff patch
-  * `origData` - a `Buffer` containing the original (source) data
-  * `newDataLength` - the size of the new (target) data in bytes
-  * `control` - an `Array` of integers representing the control block
-  * `diffBlock` - a `Buffer` containing the diff block
-  * `extraBlock` - a `Buffer` containing the extra block
-  * `callback` - a function to call once a patch has been applied
-    * `err` - null on success, an `Error` object on error
-    * `out` - a `Buffer` containing the new (target) data
+    * `origData` - a `Buffer` containing the original (source) data
+    * `newDataLength` - the size of the new (target) data in bytes
+    * `control` - an `Array` of integers representing the control block
+    * `diffBlock` - a `Buffer` containing the diff block
+    * `extraBlock` - a `Buffer` containing the extra block
+    * `callback` - a function to call once a patch has been applied
+        * `err` - null on success, an `Error` object on error
+        * `out` - a `Buffer` containing the new (target) data
 
 ## Other versions
 
