@@ -13,9 +13,7 @@
 #include <node_buffer.h>
 #include <v8.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 #include <string>
 #include <vector>
 
@@ -191,7 +189,7 @@ namespace BSDiff
     };
   }
 
-  static void AsyncDiff(uv_work_t* req)
+  static void AsyncDiff(uv_work_t *req)
   {
     Baton *baton = static_cast<Baton*>(req->data);
 
@@ -410,12 +408,6 @@ namespace BSDiff
     baton->origDataLength = static_cast<int32_t>(Buffer::Length(origData));
     baton->origHandle = Persistent<Value>::New(origData);
 
-    /*
-    for (size_t i = 0; i < baton->origDataLength; i++) {
-      printf("baton->origData[%i] = 0x%02x (%i)\n", (int)i, baton->origData[i], baton->origData[i]);
-    }
-    */
-    
     baton->newData = reinterpret_cast<unsigned char*>(Buffer::Data(newData));
     baton->newDataLength = static_cast<int32_t>(Buffer::Length(newData));
     baton->newHandle = Persistent<Value>::New(newData); 
@@ -453,7 +445,6 @@ namespace BSDiff
 
     unsigned char *diffPtr, *extraPtr;
     int32_t oldpos, newpos, x, y, z, j;
-    size_t i, numTuples;
 
     newData = new (std::nothrow) unsigned char[newDataLength + 1];
     if (newData == NULL) {
@@ -466,8 +457,7 @@ namespace BSDiff
     newpos = 0;
     diffPtr = diffBlock;
     extraPtr = extraBlock;
-    numTuples = control.size(); // XXX not really tuples anymore... :P
-    for (i = 2; i < numTuples; i+=3) {
+    for (size_t i = 2; i < control.size(); i+=3) {
         x = control[i-2];
         y = control[i-1];
         z = control[i];

@@ -1,10 +1,10 @@
 {
   "name": "bsdiff4",
   "description": "BSDiff port for node.js",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "homepage": "https://github.com/bacchusrx/bsdiff4",
   "contributors": [
-    "Erik Rothwell <bacchusrx@eightstar.ca>"
+    { "name": "Erik Rothwell", "email": "bacchusrx@eightstar.ca" }
   ],
   "repository": {
     "type": "git",
@@ -14,6 +14,12 @@
     "node": "0.6.x"
   },
   "main": "./lib/bsdiff4",
+  "devDependencies": {
+    "tap": "0.2.x"
+  },
+  "scripts": {
+    "test": "tap test/*-test.js"
+  },
   "license": {
     "type": "BSD",
     "url": "https://github.com/bacchusrx/bsdiff4/raw/master/LICENSE"
