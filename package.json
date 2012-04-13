@@ -1,6 +1,6 @@
 {
   "name": "bsdiff4",
-  "description": "BSDiff port for node.js",
+  "description": "BSDiff/BSPatch port for node.js",
   "version": "0.0.2",
   "homepage": "https://github.com/bacchusrx/bsdiff4",
   "contributors": [
