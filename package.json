@@ -23,5 +23,11 @@
   "license": {
     "type": "BSD",
     "url": "https://github.com/bacchusrx/bsdiff4/raw/master/LICENSE"
-  }
+  },
+  "keywords": [
+    "bsdiff",
+    "bspatch",
+    "diff",
+    "patch"
+  ]
 }
