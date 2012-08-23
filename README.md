@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/bacchusrx/bsdiff4.png)](http://travis-ci.org/bacchusrx/bsdiff4)
 # bsdiff4 port for node.js
 
 This port was derived from a number of sources including: the Python library
