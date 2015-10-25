@@ -385,21 +385,25 @@ namespace BSDiff
     Isolate *isolate = args.GetIsolate();
     HandleScope scope(isolate);
 
-    if (args.Length() != 3)
+    if (args.Length() != 3) {
       isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "invalid arguments")));
       return;
+    }
 
-    if (!Buffer::HasInstance(args[0]))
+    if (!Buffer::HasInstance(args[0])) {
       isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[0] not a Buffer")));
       return;
+    }
 
-    if (!Buffer::HasInstance(args[1]))
+    if (!Buffer::HasInstance(args[1])) {
       isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[1] not a Buffer")));
       return;
+    }
 
-    if (!args[2]->IsFunction())
+    if (!args[2]->IsFunction()) {
       isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[2] not a function")));
       return;
+    }
 
     Local<Object> origData = args[0]->ToObject();
     Local<Object> newData  = args[1]->ToObject();
@@ -533,33 +537,40 @@ namespace BSDiff
     Isolate *isolate = args.GetIsolate();
     HandleScope scope(args.GetIsolate());
 
-    if (args.Length() != 6)
+    if (args.Length() != 6) {
       isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "invalid arguments")));
       return;
+    }
 
-    if (!Buffer::HasInstance(args[0]))
+    if (!Buffer::HasInstance(args[0])) {
       isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[0] not a Buffer")));
       return;
+    }
 
-    if (!args[1]->IsNumber())
+    if (!args[1]->IsNumber()) {
       isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[1] not a Number")));
       return;
+    }
 
-    if (!args[2]->IsArray())
+    if (!args[2]->IsArray()) {
       isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[2] not an Array")));
       return;
+    }
 
-    if (!Buffer::HasInstance(args[3]))
+    if (!Buffer::HasInstance(args[3])) {
       isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[3] not a Buffer")));
       return;
+    }
 
-    if (!Buffer::HasInstance(args[4]))
+    if (!Buffer::HasInstance(args[4])) {
       isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[4] not a Buffer")));
       return;
+    }
 
-    if (!args[5]->IsFunction())
+    if (!args[5]->IsFunction()) {
       isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[5] not a function")));
       return;
+    }
 
     Local<Object> origData = args[0]->ToObject();
     Local<Number> newDataLength = Local<Number>::Cast(args[1]);
