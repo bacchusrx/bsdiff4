@@ -1,4 +1,4 @@
-/* 
+/*
  * bsdiff4 port for node.js (https://github.com/bacchusrx/bsdiff4)
  *
  * This port was derived from a number of sources including: the Python library
@@ -12,6 +12,7 @@
 #include <node.h>
 #include <node_buffer.h>
 #include <v8.h>
+#include <uv.h>
 #include <unistd.h>
 #include <string.h>
 #include <string>
@@ -32,13 +33,13 @@ namespace BSDiff
 
     int error;
     std::string error_message;
-    
+
     unsigned char *origData;
     unsigned char *newData;
 
     int32_t origDataLength;
     int32_t newDataLength;
-    
+
     Persistent<Value> origHandle;
     Persistent<Value> newHandle;
 
@@ -52,6 +53,8 @@ namespace BSDiff
 
     Persistent<Value> diffHandle;
     Persistent<Value> extraHandle;
+
+    Isolate *isolate;
   };
 
   static void split(int32_t *I,int32_t *V,int32_t start,int32_t len,int32_t h)
@@ -209,7 +212,7 @@ namespace BSDiff
     int32_t dblen = 0, eblen = 0;
 
     /* Algorithm */
-    
+
     int32_t lastscan, lastpos, lastoffset, oldscore, scsc, overlap, Ss, lens;
     int32_t *I, *V, scan, pos, len, s, Sf, lenf, Sb, lenb, i;
 
@@ -219,7 +222,7 @@ namespace BSDiff
       baton->error_message = "no memory for I";
       return;
     }
-    
+
     V = new (std::nothrow) int32_t[newDataLength + 1];
     if (V == NULL) {
       baton->error = 1;
@@ -229,9 +232,9 @@ namespace BSDiff
     }
 
     qsufsort(I, V, origData, origDataLength);
-    
+
     delete V;
-    
+
     db = new (std::nothrow) unsigned char[newDataLength + 1];
     if (db == NULL) {
       baton->error = 1;
@@ -268,7 +271,7 @@ namespace BSDiff
               (origData[scsc+lastoffset] == newData[scsc]))
             oldscore++;
 
-        if(((len==oldscore) && (len!=0)) || 
+        if(((len==oldscore) && (len!=0)) ||
             (len>oldscore+8)) break;
 
         if((scan+lastoffset<origDataLength) &&
@@ -315,7 +318,7 @@ namespace BSDiff
 
         dblen+=lenf;
         eblen+=(scan-lenb)-(lastscan+lenf);
-        
+
         control.push_back(lenf);
         control.push_back((scan-lenb)-(lastscan+lenf));
         control.push_back((pos-lenb)-(lastpos+lenf));
@@ -339,61 +342,64 @@ namespace BSDiff
     delete data;
   }
 
-  static void AfterDiff(uv_work_t *req)
+  static void AfterDiff(uv_work_t *req, int)
   {
-    HandleScope scope;
-
     Baton *baton = static_cast<Baton*>(req->data);
+    HandleScope scope(baton->isolate);
+
+    v8::Local<v8::Function> cb = v8::Local<v8::Function>::New(baton->isolate, baton->callback);
+    v8::Local<v8::Context> context = baton->isolate->GetCurrentContext();
 
     if (baton->error) {
-      Handle<Value> argv[] = { Exception::Error(String::New(baton->error_message.c_str())) };
+      Handle<Value> argv[] = { Exception::Error(String::NewFromUtf8(baton->isolate, baton->error_message.c_str())) };
 
       TryCatch tryCatch;
-      baton->callback->Call(Context::GetCurrent()->Global(), 1, argv);
+      cb->Call(context->Global(), 1, argv);
       if (tryCatch.HasCaught()) FatalException(tryCatch);
     }
     else {
-      Local<Array> control = Array::New(baton->control.size());
+      Local<Array> control = Array::New(baton->isolate, baton->control.size());
 
       for (size_t i = 0; i < baton->control.size(); i++) {
-        control->Set(static_cast<unsigned int>(i), Int32::New(baton->control[i]));
+        control->Set(static_cast<unsigned int>(i), Int32::New(baton->isolate, baton->control[i]));
       }
 
-      Buffer *diff = Buffer::New(reinterpret_cast<char*>(baton->db),
+      v8::Local<v8::Object> diff = Buffer::New(reinterpret_cast<char*>(baton->db),
           static_cast<size_t>(baton->dblen), DeleteMemory, NULL);
 
-      Buffer *extra = Buffer::New(reinterpret_cast<char*>(baton->eb), 
+      v8::Local<v8::Object> extra = Buffer::New(reinterpret_cast<char*>(baton->eb),
           static_cast<size_t>(baton->eblen), DeleteMemory, NULL);
 
-      Handle<Value> argv[] = { Null(), control, diff->handle_, extra->handle_ };
+      Handle<Value> argv[] = { Null(baton->isolate), control, diff, extra };
 
       TryCatch tryCatch;
-      baton->callback->Call(Context::GetCurrent()->Global(), 4, argv);
+      cb->Call(context->Global(), 4, argv);
       if (tryCatch.HasCaught()) FatalException(tryCatch);
     }
-      
-    baton->origHandle.Dispose();
-    baton->newHandle.Dispose();
-    baton->callback.Dispose();
 
     delete baton;
   }
 
-  Handle<Value> Diff(const Arguments &args)
+  void Diff(const v8::FunctionCallbackInfo<v8::Value>& args)
   {
-    HandleScope scope;
+    Isolate *isolate = args.GetIsolate();
+    HandleScope scope(isolate);
 
     if (args.Length() != 3)
-      return ThrowException(Exception::TypeError(String::New("invalid arguments")));
+      isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "invalid arguments")));
+      return;
 
     if (!Buffer::HasInstance(args[0]))
-      return ThrowException(Exception::TypeError(String::New("args[0] not a Buffer")));
+      isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[0] not a Buffer")));
+      return;
 
     if (!Buffer::HasInstance(args[1]))
-      return ThrowException(Exception::TypeError(String::New("args[1] not a Buffer")));
+      isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[1] not a Buffer")));
+      return;
 
     if (!args[2]->IsFunction())
-      return ThrowException(Exception::TypeError(String::New("args[2] not a function")));
+      isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[2] not a function")));
+      return;
 
     Local<Object> origData = args[0]->ToObject();
     Local<Object> newData  = args[1]->ToObject();
@@ -401,22 +407,21 @@ namespace BSDiff
 
     Baton *baton = new Baton();
     baton->request.data = baton;
-    
+    baton->isolate = isolate;
+
     baton->error = 0;
 
     baton->origData = reinterpret_cast<unsigned char*>(Buffer::Data(origData));
     baton->origDataLength = static_cast<int32_t>(Buffer::Length(origData));
-    baton->origHandle = Persistent<Value>::New(origData);
+    baton->origHandle.Reset(isolate, origData);
 
     baton->newData = reinterpret_cast<unsigned char*>(Buffer::Data(newData));
     baton->newDataLength = static_cast<int32_t>(Buffer::Length(newData));
-    baton->newHandle = Persistent<Value>::New(newData); 
-    
-    baton->callback = Persistent<Function>::New(callback);
-    
+    baton->newHandle.Reset(isolate, newData);
+
+    baton->callback.Reset(isolate, callback);
+
     uv_queue_work(uv_default_loop(), &baton->request, AsyncDiff, AfterDiff);
-    
-    return Undefined();
   }
 
   static void AsyncPatch(uv_work_t *req)
@@ -494,63 +499,68 @@ namespace BSDiff
     baton->newData = newData;
   }
 
-  static void AfterPatch(uv_work_t *req)
+  static void AfterPatch(uv_work_t *req, int)
   {
-    HandleScope scope;
-
     Baton *baton = static_cast<Baton*>(req->data);
+    HandleScope scope(baton->isolate);
+
+    v8::Local<v8::Function> cb = v8::Local<v8::Function>::New(baton->isolate, baton->callback);
+    v8::Local<v8::Context> context = baton->isolate->GetCurrentContext();
 
     if (baton->error) {
-      Handle<Value> argv[] = { Exception::Error(String::New(baton->error_message.c_str())) };
+      Handle<Value> argv[] = { Exception::Error(String::NewFromUtf8(baton->isolate, baton->error_message.c_str())) };
 
       TryCatch tryCatch;
-      baton->callback->Call(Context::GetCurrent()->Global(), 1, argv);
+      cb->Call(context->Global(), 1, argv);
       if (tryCatch.HasCaught()) FatalException(tryCatch);
     }
     else {
-      Buffer *newData = Buffer::New(reinterpret_cast<char*>(baton->newData),
+      v8::Local<v8::Object> newData = Buffer::New(reinterpret_cast<char*>(baton->newData),
           static_cast<size_t>(baton->newDataLength), DeleteMemory, NULL);
 
-      Handle<Value> argv[] = { Null(), newData->handle_ };
+      Handle<Value> argv[] = { Null(baton->isolate), newData };
 
       TryCatch tryCatch;
-      baton->callback->Call(Context::GetCurrent()->Global(), 2, argv);
+      cb->Call(context->Global(), 2, argv);
       if (tryCatch.HasCaught()) FatalException(tryCatch);
     }
-
-    baton->origHandle.Dispose();
-    baton->diffHandle.Dispose();
-    baton->extraHandle.Dispose();
-    baton->callback.Dispose();
 
     delete baton;
   }
 
-  Handle<Value> Patch(const Arguments &args)
+  void Patch(const v8::FunctionCallbackInfo<v8::Value>& args)
   {
-    HandleScope scope;
+    Isolate *isolate = args.GetIsolate();
+    HandleScope scope(args.GetIsolate());
 
     if (args.Length() != 6)
-      return ThrowException(Exception::TypeError(String::New("invalid arguments")));
+      isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "invalid arguments")));
+      return;
 
     if (!Buffer::HasInstance(args[0]))
-      return ThrowException(Exception::TypeError(String::New("args[0] not a Buffer")));
+      isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[0] not a Buffer")));
+      return;
 
     if (!args[1]->IsNumber())
-      return ThrowException(Exception::TypeError(String::New("args[1] not a Number")));
+      isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[1] not a Number")));
+      return;
 
     if (!args[2]->IsArray())
-      return ThrowException(Exception::TypeError(String::New("args[2] not an Array")));
+      isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[2] not an Array")));
+      return;
 
     if (!Buffer::HasInstance(args[3]))
-      return ThrowException(Exception::TypeError(String::New("args[3] not a Buffer")));
+      isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[3] not a Buffer")));
+      return;
 
     if (!Buffer::HasInstance(args[4]))
-      return ThrowException(Exception::TypeError(String::New("args[4] not a Buffer")));
+      isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[4] not a Buffer")));
+      return;
 
     if (!args[5]->IsFunction())
-      return ThrowException(Exception::TypeError(String::New("args[5] not a function")));
-     
+      isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "args[5] not a function")));
+      return;
+
     Local<Object> origData = args[0]->ToObject();
     Local<Number> newDataLength = Local<Number>::Cast(args[1]);
     Local<Array> control = Local<Array>::Cast(args[2]);
@@ -560,12 +570,13 @@ namespace BSDiff
 
     Baton *baton = new Baton();
     baton->request.data = baton;
+    baton->isolate = args.GetIsolate();
 
     baton->error = 0;
 
     baton->origData = reinterpret_cast<unsigned char*>(Buffer::Data(origData));
     baton->origDataLength = static_cast<int32_t>(Buffer::Length(origData));
-    baton->origHandle = Persistent<Value>::New(origData);
+    baton->origHandle.Reset(isolate, origData);
 
     baton->newDataLength = newDataLength->Int32Value();
 
@@ -575,22 +586,20 @@ namespace BSDiff
 
     baton->db = reinterpret_cast<unsigned char*>(Buffer::Data(diffBlock));
     baton->dblen = static_cast<int32_t>(Buffer::Length(diffBlock));
-    baton->diffHandle = Persistent<Value>::New(diffBlock);
+    baton->diffHandle.Reset(isolate, diffBlock);
 
     baton->eb = reinterpret_cast<unsigned char*>(Buffer::Data(extraBlock));
     baton->eblen = static_cast<int32_t>(Buffer::Length(extraBlock));
-    baton->extraHandle = Persistent<Value>::New(extraBlock);
+    baton->extraHandle.Reset(isolate, extraBlock);
 
-    baton->callback = Persistent<Function>::New(callback);
-   
+    baton->callback.Reset(isolate, callback);
+
     uv_queue_work(uv_default_loop(), &baton->request, AsyncPatch, AfterPatch);
-    
-    return Undefined();
   }
 
   void Init(Handle<Object> target)
   {
-    HandleScope scope;
+    HandleScope scope(Isolate::GetCurrent());
     NODE_SET_METHOD(target, "diff", Diff);
     NODE_SET_METHOD(target, "patch", Patch);
   }
