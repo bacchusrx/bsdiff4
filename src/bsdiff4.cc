@@ -355,7 +355,7 @@ namespace BSDiff
 
       TryCatch tryCatch;
       cb->Call(context->Global(), 1, argv);
-      if (tryCatch.HasCaught()) FatalException(tryCatch);
+      if (tryCatch.HasCaught()) FatalException(baton->isolate, tryCatch);
     }
     else {
       Local<Array> control = Array::New(baton->isolate, baton->control.size());
@@ -364,17 +364,27 @@ namespace BSDiff
         control->Set(static_cast<unsigned int>(i), Int32::New(baton->isolate, baton->control[i]));
       }
 
-      v8::Local<v8::Object> diff = Buffer::New(reinterpret_cast<char*>(baton->db),
+      v8::MaybeLocal<v8::Object> diff_maybe = Buffer::New(baton->isolate, reinterpret_cast<char*>(baton->db),
           static_cast<size_t>(baton->dblen), DeleteMemory, NULL);
 
-      v8::Local<v8::Object> extra = Buffer::New(reinterpret_cast<char*>(baton->eb),
+      v8::MaybeLocal<v8::Object> extra_maybe = Buffer::New(baton->isolate, reinterpret_cast<char*>(baton->eb),
           static_cast<size_t>(baton->eblen), DeleteMemory, NULL);
 
-      Handle<Value> argv[] = { Null(baton->isolate), control, diff, extra };
+      v8::Local<v8::Object> diff, extra;
+      if (!diff_maybe.ToLocal(&diff) || !extra_maybe.ToLocal(&extra)) {
+          Handle<Value> argv[] = { Exception::Error(String::NewFromUtf8(baton->isolate, "Failed to create buffers")) };
 
-      TryCatch tryCatch;
-      cb->Call(context->Global(), 4, argv);
-      if (tryCatch.HasCaught()) FatalException(tryCatch);
+          TryCatch tryCatch;
+          cb->Call(context->Global(), 1, argv);
+          if (tryCatch.HasCaught()) FatalException(baton->isolate, tryCatch);
+      }
+      else {
+          Handle<Value> argv[] = { Null(baton->isolate), control, diff, extra };
+
+          TryCatch tryCatch;
+          cb->Call(context->Global(), 4, argv);
+          if (tryCatch.HasCaught()) FatalException(baton->isolate, tryCatch);
+      }
     }
 
     delete baton;
@@ -516,17 +526,27 @@ namespace BSDiff
 
       TryCatch tryCatch;
       cb->Call(context->Global(), 1, argv);
-      if (tryCatch.HasCaught()) FatalException(tryCatch);
+      if (tryCatch.HasCaught()) FatalException(baton->isolate, tryCatch);
     }
     else {
-      v8::Local<v8::Object> newData = Buffer::New(reinterpret_cast<char*>(baton->newData),
+      v8::MaybeLocal<v8::Object> newData_maybe = Buffer::New(baton->isolate, reinterpret_cast<char*>(baton->newData),
           static_cast<size_t>(baton->newDataLength), DeleteMemory, NULL);
 
-      Handle<Value> argv[] = { Null(baton->isolate), newData };
+      v8::Local<v8::Object> newData;
+      if (!newData_maybe.ToLocal(&newData)) {
+          Handle<Value> argv[] = { Exception::Error(String::NewFromUtf8(baton->isolate, "Failed to create buffers")) };
 
-      TryCatch tryCatch;
-      cb->Call(context->Global(), 2, argv);
-      if (tryCatch.HasCaught()) FatalException(tryCatch);
+          TryCatch tryCatch;
+          cb->Call(context->Global(), 1, argv);
+          if (tryCatch.HasCaught()) FatalException(baton->isolate, tryCatch);
+      }
+      else {
+          Handle<Value> argv[] = { Null(baton->isolate), newData };
+
+          TryCatch tryCatch;
+          cb->Call(context->Global(), 2, argv);
+          if (tryCatch.HasCaught()) FatalException(baton->isolate, tryCatch);
+      }
     }
 
     delete baton;
